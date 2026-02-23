@@ -1,0 +1,296 @@
+﻿@page "/configurator"
+@inject IMatchService MatchService
+@inject ITeamService TeamService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Start a Game</PageTitle>
+@if (isLoading)
+{
+    <Loading />
+}
+else
+{
+    switch (match.State)
+    {
+        case MatchState.None:
+            <ConfigLanding MatchChanged="HandleMatchChanged" />
+            break;
+        case MatchState.Configuring:
+            <ConfigSetup Match="match" Teams="teams" MatchTypes="matchTypes" OnSelectedTeam="@(args => HandleTeamChanged(args.selectedTeam, args.side))" OnSelectedMatchType="HandleMatchTypeChanged" MatchChanged="HandleMatchChanged" />
+            break;
+        case MatchState.ChampionSelect:
+            <ConfigDraft Match="match" Champions="champions" BanChampionCallback="@(args => HandleBanUpdate(args.champion, args.index, args.team))" PickChampionCallback="@(args => HandlePickUpdate(args.champion, args.index, args.team))" MatchChanged="HandleMatchChanged" />
+            break;
+        case MatchState.GameStart:
+            <ConfigGame Match="match" OnTowerDestroyed="@(args => HandleTowerDestroyed(args.x, args.y))" OnTeamWinning="OnGameEndAsync" OnPlayerScoreUpdate="@(args => HandlePlayerScoreUpdate(args.index, args.team, args.type))" OnLogbookMessage="HandleLogMessage" MatchChanged="HandleMatchChanged" OnAnnouncementSend="HandleAnnouncementSend" />
+            break;
+        case MatchState.Pause:
+            <ConfigPause MatchChanged="HandleMatchChanged" OnNextMatch="HandleNextMatch" />
+            break;
+        case MatchState.GameEnd:
+            <ConfigGameEnd Match="match" OnResetGame="ResetState" />
+            break;
+        default:
+            <div class="alert alert-danger">Unknown match state</div>
+            break;
+    }
+}
+
+
+@code {
+
+    private MatchViewModel match;
+    private MatchTypeListViewModel matchTypes;
+    private ChampionListViewModel champions;
+    private TeamListViewModel teams;
+    private HubConnection hubConnection;
+    private bool isLoading = true;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/matchHub"))
+            .Build();
+
+        await hubConnection.StartAsync();
+        match = new MatchViewModel();
+        match.Created = DateTime.Now;
+
+        champions = new ChampionListViewModel();
+        var championsResult = await MatchService.GetChampionsAsync();
+        if (championsResult.IsSuccess)
+        {
+            champions.List = championsResult.Data.Select(c => new ChampionViewModel
+            {
+                Id = c.Id,
+                Name = c.Name,
+            }).ToList();
+        }
+
+        teams = new TeamListViewModel();
+        var teamsResult = await TeamService.GetTeamsAsync();
+        if (teamsResult.IsSuccess)
+        {
+            teams.List = teamsResult.Data.Select(t => new TeamViewModel
+            {
+                Id = t.Id,
+                Name = t.Name,
+                ShortName = t.ShortName,
+                ImageUrl = t.ImageUrl,
+                SmallImageUrl = t.SmallImageUrl,
+            }).ToList();
+        }
+
+        matchTypes = new MatchTypeListViewModel();
+        var matchTypesResult = await MatchService.GetMatchTypesAsync();
+        if (matchTypesResult.IsSuccess)
+        {
+            matchTypes.List = matchTypesResult.Data.Select(m => new MatchTypeViewModel
+            {
+                Id = m.Id,
+                Name = m.Name,
+                ShortName = m.ShortName,
+                RequiredWins = m.RequiredWins,
+            }).ToList();
+        }
+
+        isLoading = false;
+    }
+
+    private async void OnLocationChanged(object sender, LocationChangedEventArgs e)
+    {
+        if (!e.Location.Contains("/configurator"))
+        {
+            await ResetState();
+        }
+    }
+
+    private async Task ResetState()
+    {
+        match = new MatchViewModel();
+        await hubConnection.SendAsync(nameof(MatchHub.SendCancelMatch));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleMatchChanged(MatchState state)
+    {
+        match.State = state;
+        await hubConnection.SendAsync(nameof(MatchHub.SendMatchState), state);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleTeamChanged(Guid? selectedTeam, TeamType side)
+    {
+        if (side == TeamType.Blue)
+        {
+            if (selectedTeam == null)
+            {
+                match.BlueTeam = null;
+                return;
+            }
+
+            var blueTeam = await TeamService.GetTeamByIdAsync(selectedTeam.Value);
+            if (blueTeam.IsSuccess)
+            {
+                match.BlueTeam = new TeamMatchViewModel
+                {
+                    Id = blueTeam.Data.Id,
+                    Name = blueTeam.Data.Name,
+                    ShortName = blueTeam.Data.ShortName,
+                    ImageUrl = blueTeam.Data.ImageUrl,
+                    SmallImageUrl = blueTeam.Data.SmallImageUrl,
+                    Losses = blueTeam.Data.Losses,
+                    Wins = blueTeam.Data.Wins,
+                    Players = blueTeam.Data.Players.Select(p => new PlayerViewModel
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        ImageUrl = p.ImageUrl,
+                        PlayerName = p.PlayerName,
+                        Role = new RoleViewModel
+                        {
+                            Id = p.Role.Id,
+                            Name = p.Role.Name,
+                            Order = p.Role.Order,
+                            ImageUrl = p.Role.ImageUrl,
+                        },
+                    }).ToList(),
+                };
+
+                match.BlueTeam.Players = match.BlueTeam.Players.OrderBy(p => p.Role.Order).ToList();
+
+                await hubConnection.SendAsync(nameof(MatchHub.SendTeamUpdate), match.BlueTeam, side);
+            }
+        }
+        else
+        {
+            if (selectedTeam == null)
+            {
+                match.RedTeam = null;
+                return;
+            }
+
+            var redTeam = await TeamService.GetTeamByIdAsync(selectedTeam.Value);
+            if (redTeam.IsSuccess)
+            {
+                match.RedTeam = new TeamMatchViewModel
+                {
+                    Id = redTeam.Data.Id,
+                    Name = redTeam.Data.Name,
+                    ShortName = redTeam.Data.ShortName,
+                    ImageUrl = redTeam.Data.ImageUrl,
+                    SmallImageUrl = redTeam.Data.SmallImageUrl,
+                    Losses = redTeam.Data.Losses,
+                    Wins = redTeam.Data.Wins,
+                    Players = redTeam.Data.Players.Select(p => new PlayerViewModel
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        ImageUrl = p.ImageUrl,
+                        PlayerName = p.PlayerName,
+                        Role = new RoleViewModel
+                        {
+                            Id = p.Role.Id,
+                            Name = p.Role.Name,
+                            Order = p.Role.Order,
+                            ImageUrl = p.Role.ImageUrl,
+                        },
+                    }).ToList(),
+                };
+
+                match.RedTeam.Players = match.RedTeam.Players.OrderBy(p => p.Role.Order).ToList();
+
+                await hubConnection.SendAsync(nameof(MatchHub.SendTeamUpdate), match.RedTeam, side);
+            }
+        }
+    }
+
+    private async Task HandleMatchTypeChanged(Guid? selectedMatchType)
+    {
+        match.MatchType = matchTypes.List.FirstOrDefault(m => m.Id == selectedMatchType);
+        await hubConnection.SendAsync(nameof(MatchHub.SendMatchTypeUpdate), match.MatchType);
+    }
+
+    private async Task HandleBanUpdate(SendChampion champion, int index, TeamType team)
+    {
+        await hubConnection.SendAsync(nameof(MatchHub.SendBanUpdate), champion, index, team);
+    }
+
+    private async Task HandlePickUpdate(SendChampion champion, int index, TeamType team)
+    {
+        await hubConnection.SendAsync(nameof(MatchHub.SendPickUpdate), champion, index, team);
+    }
+
+    private async Task HandleTowerDestroyed(double x, double y)
+    {
+        match.TowersDestroyed.Add(new CrossViewModel
+        {
+            X = x,
+            Y = y,
+        });
+        await hubConnection.SendAsync(nameof(MatchHub.SendTowerDestroyed), x, y);
+    }
+
+    private async Task HandlePlayerScoreUpdate(int index, TeamType team, ScoreType type)
+    {
+        await hubConnection.SendAsync(nameof(MatchHub.SendPlayerScoreUpdate), index, team, type);
+    }
+
+    private async Task HandleLogMessage(string message)
+    {
+        await hubConnection.SendAsync(nameof(MatchHub.SendLogbookMessage), message);
+    }
+
+    private async Task HandleNextMatch()
+    {
+        match.RedTeam.Bans = new ChampionViewModel[5];
+        match.RedTeam.Champions = new ChampionViewModel[5];
+
+        match.BlueTeam.Bans = new ChampionViewModel[5];
+        match.BlueTeam.Champions = new ChampionViewModel[5];
+
+        match.TowersDestroyed = new List<CrossViewModel>();
+        match.State = MatchState.ChampionSelect;
+
+        match.RedTeam.InitializeScores();
+        match.BlueTeam.InitializeScores();
+
+        await hubConnection.SendAsync(nameof(MatchHub.SendNextMatchUpdate), match);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnGameEndAsync(TeamType team)
+    {
+        var winningTeamId = team == TeamType.Blue ? match.BlueTeam.Id : match.RedTeam.Id;
+        var losingTeamId = team == TeamType.Blue ? match.RedTeam.Id : match.BlueTeam.Id;
+
+        await TeamService.UpdateTeamScoreAsync(winningTeamId, true);
+        await TeamService.UpdateTeamScoreAsync(losingTeamId);
+
+        var matchResult = new CreateMatchRequestModel
+        {
+            MatchTypeId = match.MatchType.Id,
+            BlueTeamId = match.BlueTeam.Id,
+            RedTeamId = match.RedTeam.Id,
+            BlueTeamWins = match.BlueTeam.MatchWins,
+            RedTeamWins = match.RedTeam.MatchWins,
+            Created = match.Created
+        };
+
+        await MatchService.CreateMatchResultAsync(matchResult);
+
+        match.WinningTeam = team;
+        match.State = MatchState.GameEnd;
+
+        await hubConnection.SendAsync(nameof(MatchHub.SendRefreshPlayedMatches));
+        await hubConnection.SendAsync(nameof(MatchHub.SendRefreshScoreboard));
+        await hubConnection.SendAsync(nameof(MatchHub.SendGameResult), match);
+    }
+
+    private async Task HandleAnnouncementSend(AnnouncementViewModel announcement)
+    {
+        await hubConnection.SendAsync(nameof(MatchHub.SendAnnouncement), announcement);
+    }
+}

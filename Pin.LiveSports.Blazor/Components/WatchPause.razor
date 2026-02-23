@@ -1,0 +1,16 @@
+﻿<div class="container-xl">
+    <div class="card p-2" style="background-color: #0f0f0f;">
+        <div class="d-flex flex-column justify-content-center align-items-center my-3">
+            <div style="height:200px; width:200px;">
+                <LottieAnimation AnimationPath="animations/khazix.json" />
+            </div>
+            <p class="text-lol">Next match is being prepared...</p>
+        </div>
+        <Loading />
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public MatchViewModel Match { get; set; }
+}

@@ -1,0 +1,35 @@
+﻿<div class="container-xl">
+    <div class="card p-2" style="background-color: #0f0f0f;">
+        <div class="row">
+            <div class="col text-center">
+                @if (Match.WinningTeam == TeamType.Red)
+                {
+                    <img src="images/teams/@Match.RedTeam.ImageUrl" class="my-3" alt="Red Team Logo" style="width: 100px; height: 100px;" />
+                    <h3 class="text-light">@Match.RedTeam.Name</h3>
+                    <p class="text-light">Wins with a score of @(Match.RedTeam.MatchWins) - @(Match.BlueTeam.MatchWins)</p>
+                }
+
+                @if (Match.WinningTeam == TeamType.Blue)
+                {
+                    <img src="images/teams/@Match.BlueTeam.ImageUrl" class="my-3" alt="Blue Team Logo" style="width: 100px; height: 100px;" />
+                    <h3 class="text-light">@Match.BlueTeam.Name</h3>
+                    <p class="text-light">Wins with a score of @(Match.BlueTeam.MatchWins) - @(Match.RedTeam.MatchWins)</p>
+                }
+            </div>
+        </div>
+        <button class="btn btn-dark btn-ranking mb-2 mx-2" @onclick="() => ResetGame()">Reset Game</button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public MatchViewModel Match { get; set; }
+
+    [Parameter]
+    public EventCallback OnResetGame { get; set; }
+
+    public async Task ResetGame()
+    {
+        await OnResetGame.InvokeAsync();
+    }
+}

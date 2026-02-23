@@ -1,0 +1,53 @@
+﻿<div class="container-xl">
+    <div class="card p-2" style="background-color: #0f0f0f;">
+        @if (Match.BlueTeam == null || Match.RedTeam == null)
+        {
+            <div class="d-flex flex-column justify-content-center align-items-center my-3">
+                <div style="height:200px; width:200px;">
+                    <LottieAnimation AnimationPath="animations/khazix.json" />
+                </div>
+                <p class="text-lol">Match is being prepared...</p>
+            </div>
+            <Loading />
+        }
+        else
+        {
+            <div class="setup-team-vs-team">
+                <div class="setup-team">
+                    <img src="images/teams/@Match.BlueTeam.ImageUrl" alt="@Match.BlueTeam.Name" class="setup-player-image mb-2" />
+                    <h5 class="mb-4">@Match.BlueTeam.Name</h5>
+                    <div class="setup-players">
+                        @foreach (var player in Match.BlueTeam.Players)
+                        {
+                            <div class="setup-player">
+                                <img src="images/@player.ImageUrl" alt="@player.PlayerName" class="setup-player-image blue-team" />
+                                <p>@player.PlayerName</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <img src="images/versus.png" alt="VS" class="setup-player-image" />
+                <div class="setup-team">
+                    <img src="images/teams/@Match.RedTeam.ImageUrl" alt="@Match.RedTeam.Name" class="setup-player-image mb-2" />
+                    <h5 class="mb-4">@Match.RedTeam.Name</h5>
+                    <div class="setup-players">
+                        @foreach (var player in Match.RedTeam.Players)
+                        {
+                            <div class="setup-player">
+                                <img src="images/@player.ImageUrl" alt="@player.PlayerName" class="setup-player-image red-team" />
+                                <p>@player.PlayerName</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <Loading LoadingText="Waiting for the champion select to start..." />
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public MatchViewModel Match { get; set; }
+}

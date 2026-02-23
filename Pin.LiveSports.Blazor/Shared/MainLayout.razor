@@ -1,0 +1,47 @@
+﻿@inherits LayoutComponentBase
+
+<PageTitle>Pin.LiveSports.Blazor</PageTitle>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4 d-flex align-items-center">
+            <span class="oi oi-timer text-lol" style="font-size: 1.3rem;"></span>
+            <span class="mx-2 text-lol">@currentTime</span>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    private string currentTime = DateTime.Now.ToString("HH:mm:ss");
+    private CancellationTokenSource? cancellationTokenSource;
+
+    protected override void OnInitialized()
+    {
+        cancellationTokenSource = new CancellationTokenSource();
+        _ = UpdateTimeAsync(cancellationTokenSource.Token);
+    }
+
+    private async Task UpdateTimeAsync(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            currentTime = DateTime.Now.ToString("HH:mm:ss");
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(1000, cancellationToken);
+        }
+    }
+
+    public void Dispose()
+    {
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
+    }
+}

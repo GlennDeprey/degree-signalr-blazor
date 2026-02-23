@@ -1,0 +1,25 @@
+﻿@inject IJSRuntime JSRuntime
+
+<div @ref="animationContainer" style="width: 100%; height: 100%;"></div>
+
+@code {
+    [Parameter]
+    public string AnimationPath { get; set; }
+
+    private ElementReference animationContainer;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("lottie.loadAnimation", new
+            {
+                container = animationContainer,
+                renderer = "svg",
+                loop = true,
+                autoplay = true,
+                path = AnimationPath
+            });
+        }
+    }
+}

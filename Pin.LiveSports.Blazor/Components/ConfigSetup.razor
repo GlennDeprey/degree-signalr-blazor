@@ -1,0 +1,143 @@
+﻿<div class="container-xl">
+    <div class="card p-2 mb-5" style="background-color: #0f0f0f;">
+        <img class="img-fluid mx-auto" src="images/logo-lolesports.png" alt="Logo Header" />
+    </div>
+    <div class="d-flex justify-content-between mb-3">
+        <div class="card p-2 mb-5 p-2" style="background-color: #0f0f0f; width:25%;">
+            <div class="team-rectangle blue-team mb-2">Blue Team</div>
+            <select @onchange="OnBlueTeamChanged" class="form-select form-select-dark">
+                <option value="">Select Team</option>
+                @foreach (var team in Teams.List)
+                {
+                    if (team.Id == SelectedRedTeamId)
+                    {
+                        <option value="@team.Id" disabled>@team.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@team.Id">@team.Name</option>
+                    }
+                }
+            </select>
+            @if (SelectedBlueTeamId != null)
+            {
+                var imageurl = Teams.List.FirstOrDefault(t => t.Id == SelectedBlueTeamId).ImageUrl;
+                <div class="d-flex justify-content-center my-4">
+                    <img src="images/teams/@imageurl" class="img-fluid" style="max-height: 100px; max-width: 100px;" />
+                </div>
+            }
+        </div>
+        <div class="card p-2 mb-5" style="background-color: #0f0f0f; width:40%;">
+            <div class="team-rectangle config-team mb-2">Configuration</div>
+            <select @onchange="OnMatchTypeChanged" class="form-select form-select-dark">
+                <option value="">Select Match Type</option>
+                @foreach (var matchType in MatchTypes.List)
+                {
+                    <option value="@matchType.Id">@matchType.Name</option>
+                }
+            </select>
+            <button class="btn btn-dark btn-ranking w-100 my-3" @onclick="OnStartMatchAsync">Start Champion Select</button>
+            <div class="alert alert-danger" hidden="@isValidInput">Please select the teams and match type.</div>
+        </div>
+        <div class="card p-2 mb-5 p-2" style="background-color: #0f0f0f; width: 25%;">
+            <div class="team-rectangle red-team mb-2">Red Team</div>
+            <select @onchange="OnRedTeamChanged" class="form-select form-select-dark">
+                <option value="">Select Team</option>
+                @foreach (var team in Teams.List)
+                {
+                    if (team.Id == SelectedBlueTeamId)
+                    {
+                        <option value="@team.Id" disabled>@team.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@team.Id">@team.Name</option>
+                    }
+                }
+            </select>
+            @if (SelectedRedTeamId != null)
+            {
+                var imageurl = Teams.List.FirstOrDefault(t => t.Id == SelectedRedTeamId).ImageUrl;
+                <div class="d-flex justify-content-center my-4">
+                    <img src="images/teams/@imageurl" class="img-fluid" style="max-height: 100px; max-width: 100px;" />
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public MatchViewModel Match { get; set; }
+
+    [Parameter]
+    public TeamListViewModel Teams { get; set; }
+
+    [Parameter]
+    public MatchTypeListViewModel MatchTypes { get; set; }
+
+    [Parameter]
+    public EventCallback<(Guid? selectedTeam, TeamType side)> OnSelectedTeam { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid?> OnSelectedMatchType { get; set; }
+
+    [Parameter]
+    public EventCallback<MatchState> MatchChanged { get; set; }
+
+    private Guid? SelectedBlueTeamId { get; set; }
+    private Guid? SelectedRedTeamId { get; set; }
+    private Guid? SelectedMatchTypeId { get; set; }
+    private bool isValidInput = true;
+
+    private async void OnMatchTypeChanged(ChangeEventArgs e)
+    {
+        isValidInput = true;
+        if (string.IsNullOrEmpty(e.Value?.ToString()))
+        {
+            SelectedMatchTypeId = null;
+            await OnSelectedMatchType.InvokeAsync(SelectedMatchTypeId);
+            return;
+        }
+        SelectedMatchTypeId = Guid.Parse(e.Value.ToString());
+        await OnSelectedMatchType.InvokeAsync(SelectedMatchTypeId);
+    }
+
+    private async void OnBlueTeamChanged(ChangeEventArgs e)
+    {
+        isValidInput = true;
+        if (string.IsNullOrEmpty(e.Value?.ToString()))
+        {
+            SelectedBlueTeamId = null;
+            await OnSelectedTeam.InvokeAsync((SelectedBlueTeamId, TeamType.Blue));
+            return;
+        }
+        SelectedBlueTeamId = Guid.Parse(e.Value.ToString());
+        await OnSelectedTeam.InvokeAsync((SelectedBlueTeamId, TeamType.Blue));
+    }
+
+    private async void OnRedTeamChanged(ChangeEventArgs e)
+    {
+
+        isValidInput = true;
+        if (string.IsNullOrEmpty(e.Value?.ToString()))
+        {
+            SelectedRedTeamId = null;
+            await OnSelectedTeam.InvokeAsync((SelectedRedTeamId, TeamType.Blue));
+            return;
+        }
+        SelectedRedTeamId = Guid.Parse(e.Value.ToString());
+        await OnSelectedTeam.InvokeAsync((SelectedRedTeamId, TeamType.Red));
+    }
+
+    private async Task OnStartMatchAsync()
+    {
+        if (SelectedBlueTeamId == null || SelectedRedTeamId == null || SelectedMatchTypeId == null)
+        {
+            isValidInput = false;
+            return;
+        }
+
+        await MatchChanged.InvokeAsync(MatchState.ChampionSelect);
+    }
+}

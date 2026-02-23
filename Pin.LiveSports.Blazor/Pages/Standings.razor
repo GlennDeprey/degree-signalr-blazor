@@ -1,0 +1,244 @@
+﻿@page "/standings"
+@using Pin.LiveSports.Blazor.ViewModels.Players
+@using Pin.LiveSports.Blazor.ViewModels.Teams
+@inject ITeamService TeamService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Standings</PageTitle>
+<div class="container-xl">
+    <div class="card p-2" style="background-color: #0f0f0f;">
+        @if (!teamSelected)
+        {
+            <img class="img-fluid shadow mx-auto" src="images/header-ranking.webp" alt="Standing Header" />
+        }
+        else
+        {
+            <img class="img-fluid shadow mx-auto mb-2" src="images/header-team.jpg" alt="Team Header" />
+            <div class="d-flex align-items-center" style="height: 100%;">
+                <div class="m-3 d-flex align-items-center">
+                    <img class="img-fluid" src="images/teams/@selectedTeam.ImageUrl" alt="@selectedTeam.Name" style="height: 100px; width: 100px;" />
+                    <div class="text-light ms-2">
+                        <div style="font-size: 2rem; font-weight:bold;">@selectedTeam.Name</div>
+                        <div style="font-size: 1rem; font-weight: bold; color: #8fa3b0;">LEC - @(selectedTeam.ShortName)</div>
+                    </div>
+                </div>
+                <div class="m-3 d-flex align-items-center ms-auto">
+                    <div class="text-light" style="font-size: 2rem; font-weight:bold;">@(selectedTeam.Wins)W - @(selectedTeam.Losses)L</div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center align-items-center my-5">
+            <div class="text-center">
+                <div class="spinner-border spinner-border-lg text-lol mb-2"></div>
+                <div class="text-lol">Loading...</div>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (!teamSelected)
+        {
+            <div class="card p-4 my-5" style="background-color: #0f0f0f;">
+                <h5 class="card-header text-light" style="text-transform: capitalize; line-height: 28px; font-weight: 700;">Participating Teams</h5>
+                <hr class="border-dark-subtle mx-3" />
+                <div class="card-body" style="color:#a3a3a3;">All teams in the region participate in this event</div>
+                <div class="d-flex flex-wrap">
+                    @foreach (var team in teams.List)
+                    {
+                        <div class="grid-pt-team-item">
+                            <img src="images/teams/@team.SmallImageUrl" alt="@team.Name" />
+                            <div class="grid-pt-team-item-text">@team.ShortName</div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="table-responsive text-nowrap mb-5">
+                <table class="table table-hover table-striped table-dark">
+                    <thead>
+                        <tr>
+                            <th class="text-center">Rank</th>
+                            <th>Team</th>
+                            <th class="text-center">Series Win / Loss</th>
+                            <th class="text-center">Win / Loss %</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var team in teams.List.OrderBy(t => t.Rank))
+                        {
+                            <tr>
+                                <td class="text-center">@team.Rank</td>
+                                <td><img src="images/teams/@team.SmallImageUrl" style="height:30px; width:30px" alt="@team.Name" /> @team.Name</td>
+                                <td class="text-center">@(team.Wins)W - @(team.Losses)L</td>
+                                <td class="text-center">@(team.WinRate)%</td>
+                                <td class="text-end"><button @onclick="() => DisplayTeamAsync(team.Id)" class="btn btn-dark btn-ranking">View Team</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <button class="btn btn-dark btn-ranking my-3" @onclick="() => ReturnToStandings()"><span class="oi oi-arrow-left" aria-hidden="true"></span> Go Back</button>
+            <div class="mb-5">
+                @foreach (var player in selectedTeam.Players)
+                {
+                    <div class="card mb-2 position-relative" style="background-color: #0f0f0f;">
+                        <div class="background-image" style="background: no-repeat center/40% url('images/teams/@selectedTeam.ImageUrl'); opacity: 0.3; position: absolute; top: 0; left: 0; right: 0; bottom: 0;"></div>
+                        <div class="content position-relative" style="z-index: 1;">
+                            <div class="d-flex justify-content-between">
+                                <div class="row-start p-3 d-flex flex-column">
+                                    <img class="align-self-start" src="images/roles/@player.Role.ImageUrl" />
+                                    <h5 class="text-light mt-auto" style="font-weight:bold;">@player.PlayerName</h5>
+                                    <div style="font-weight: bold; color: #8fa3b0;">@player.Name</div>
+                                </div>
+                                <div class="row-end">
+                                    <img class="img-fluid" src="images/@player.ImageUrl" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private HubConnection hubConnection;
+    private TeamListViewModel teams;
+    private TeamDetailViewModel selectedTeam;
+    private bool isLoading = true;
+    private bool teamSelected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/matchHub"))
+            .Build();
+
+        hubConnection.On(HubContants.ReceivedRefreshScoreboard, async () =>
+        {
+            isLoading = true;
+            await PopulateScoreBoardAsync();
+            await InvokeAsync(StateHasChanged);
+        });
+
+        await hubConnection.StartAsync();
+
+        teams = new TeamListViewModel();
+        await PopulateScoreBoardAsync();
+        await base.OnInitializedAsync();
+    }
+
+    public async Task PopulateScoreBoardAsync()
+    {
+        var result = await TeamService.GetTeamsAsync();
+        if (result.IsSuccess)
+        {
+            teams.List = result.Data.Select(t => new TeamViewModel
+            {
+                Id = t.Id,
+                Name = t.Name,
+                ShortName = t.ShortName,
+                Wins = t.Wins,
+                Losses = t.Losses,
+                ImageUrl = t.ImageUrl,
+                SmallImageUrl = t.SmallImageUrl
+            }).ToList();
+
+            AssignRanks(teams.List);
+            AssignWinrate(teams.List);
+        }
+
+        isLoading = false;
+    }
+
+    public async Task DisplayTeamAsync(Guid id)
+    {
+        isLoading = true;
+        var team = await TeamService.GetTeamByIdAsync(id);
+        if (team.IsSuccess)
+        {
+            selectedTeam = new TeamDetailViewModel
+            {
+                Id = team.Data.Id,
+                Name = team.Data.Name,
+                ShortName = team.Data.ShortName,
+                Wins = team.Data.Wins,
+                Losses = team.Data.Losses,
+                ImageUrl = team.Data.ImageUrl,
+                SmallImageUrl = team.Data.SmallImageUrl,
+                Players = team.Data.Players.Select(p => new PlayerViewModel
+                {
+                    Id = p.Id,
+                    PlayerName = p.PlayerName,
+                    Name = p.Name,
+                    ImageUrl = p.ImageUrl,
+                    Role = new RoleViewModel
+                    {
+                        Id = p.Role.Id,
+                        Name = p.Role.Name,
+                        ImageUrl = p.Role.ImageUrl
+                    }
+                }).ToList()
+            };
+            teamSelected = true;
+        }
+
+        isLoading = false;
+    }
+
+    public async Task ReturnToStandings()
+    {
+        isLoading = true;
+        await Task.Delay(1000);
+        teamSelected = false;
+        isLoading = false;
+    }
+
+    private void AssignRanks(IList<TeamViewModel> teams)
+    {
+        var sortedTeams = teams
+            .OrderByDescending(t => t.Wins)
+            .ThenBy(t => t.Losses)
+            .ToList();
+
+        int currentRank = 1;
+        for (int i = 0; i < sortedTeams.Count; i++)
+        {
+            if (i > 0 && sortedTeams[i].Wins == sortedTeams[i - 1].Wins && sortedTeams[i].Losses == sortedTeams[i - 1].Losses)
+            {
+                sortedTeams[i].Rank = sortedTeams[i - 1].Rank;
+            }
+            else
+            {
+                sortedTeams[i].Rank = currentRank;
+            }
+            currentRank++;
+        }
+    }
+
+    private void AssignWinrate(IList<TeamViewModel> teams)
+    {
+        foreach (var team in teams)
+        {
+            int totalGames = team.Wins + team.Losses;
+            if (totalGames == 0)
+            {
+                team.WinRate = 0;
+            }
+            else
+            {
+                team.WinRate = Math.Round((double)team.Wins / totalGames * 100, 2);
+            }
+        }
+    }
+
+}

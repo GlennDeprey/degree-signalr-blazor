@@ -1,0 +1,382 @@
+﻿@inject IMapService MapService
+@if (isLoading)
+{
+    <Loading />
+}
+else
+{
+<div class="container-xl">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card p-2" style="background-color: #0f0f0f;">
+                <div class="blue-team p-2 mb-4">
+                    <h5 class="text-center text-light mt-2">Blue Team</h5>
+                </div>
+                <div class="d-flex justify-content-center">
+                    <img src="images/teams/@Match.BlueTeam.ImageUrl" alt="@Match.BlueTeam.Name" class="watch-team-logo img-fluid mb-2" />
+                </div>
+                <div class="team-info">
+                    <h5 class="text-light text-center">@Match.BlueTeam.Name</h5>
+                    <div class="watch-gap d-flex justify-content-center mb-3">
+                        @for (int i = 0; i < Match.MatchType.RequiredWins; i++)
+                        {
+                            <div class="square-score">
+                                @if (Match.BlueTeam.MatchWins > i)
+                                {
+                                    <div class="square-win"></div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="card p-2 mx-2 mb-3" style="background-color: #1a1a1a;">
+                    <div class="mx-3 my-3">
+                        @for (int i = 0; i < Match.BlueTeam.Players.Count; i++)
+                        {
+                            var index = i;
+                            <div class="text-light" style="font-weight:bold;">@Match.BlueTeam.Players[i].PlayerName</div>
+                            <div class="d-flex align-items-center mb-2">
+                                <img class="img-fluid role-logo" src="images/roles/@Match.BlueTeam.Players[i].Role.ImageUrl" />
+                                <div class="square-champion mx-2">
+                                    @if (Match.BlueTeam.Champions[i] != null)
+                                    {
+                                        <img src="@Match.BlueTeam.Champions[i].SmallImageUrl" alt="@Match.BlueTeam.Champions[i].Name" class="img-fluid" />
+                                    }
+                                </div>
+                                <h5 class="text-white text-center">
+                                    @(Match.BlueTeam.PlayerScores[i].Kills)/@(Match.BlueTeam.PlayerScores[i].Deaths)/@(Match.BlueTeam.PlayerScores[i].Assists)
+                                </h5>
+                                <div class="d-flex justify-content-center mx-3 mb-2">
+                                    <button class="btn btn-primary mx-1" @onclick="() => UpdateScoreAsync(index, TeamType.Blue, ScoreType.Kill)">+ Kill</button>
+                                    <button class="btn btn-primary mx-1" @onclick="() => UpdateScoreAsync(index, TeamType.Blue, ScoreType.Death)">+ Death</button>
+                                    <button class="btn btn-primary mx-1" @onclick="() => UpdateScoreAsync(index, TeamType.Blue, ScoreType.Assist)">+ Assist</button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="red-team p-2 my-3">
+                    <h5 class="text-center text-light mt-2">Red Towers</h5>
+                </div>
+                @foreach (var tower in Towers.Where(t => t.CanBeDestroyed && !t.IsDestroyed && t.Team == TeamType.Red))
+                {
+                    <button class="btn btn-dark btn-ranking mb-2 mx-2" @onclick="() => DestroyTower(tower.Name)">@tower.Name</button>
+                }
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card p-2" style="background-color: #0f0f0f;">
+                <div class="red-team p-2 mb-4">
+                    <h5 class="text-center text-light mt-2">Red Team</h5>
+                </div>
+                <div class="d-flex justify-content-center">
+                    <img src="images/teams/@Match.RedTeam.ImageUrl" alt="@Match.RedTeam.Name" class="watch-team-logo img-fluid mb-2" />
+                </div>
+                <div class="team-info">
+                    <h5 class="text-light text-center">@Match.RedTeam.Name</h5>
+                    <div class="watch-gap d-flex justify-content-center mb-3">
+                        @for (int i = 0; i < Match.MatchType.RequiredWins; i++)
+                        {
+                            <div class="square-score">
+                                @if (Match.RedTeam.MatchWins > i)
+                                {
+                                    <div class="square-win"></div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="card p-2 mx-2 mb-3" style="background-color: #1a1a1a;">
+                    <div class="mx-3 my-3">
+                        @for (int i = 0; i < Match.RedTeam.Players.Count; i++)
+                        {
+                            var index = i;
+                            <div class="text-light" style="font-weight:bold;">@Match.RedTeam.Players[i].PlayerName</div>
+                            <div class="d-flex align-items-center mb-2">
+                                <img class="img-fluid role-logo" src="images/roles/@Match.RedTeam.Players[i].Role.ImageUrl" />
+                                <div class="square-champion mx-2">
+                                    @if (Match.RedTeam.Champions[i] != null)
+                                    {
+                                        <img src="@Match.RedTeam.Champions[i].SmallImageUrl" alt="@Match.RedTeam.Champions[i].Name" class="img-fluid" />
+                                    }
+                                </div>
+                                <h5 class="text-white text-center">
+                                    @(Match.RedTeam.PlayerScores[i].Kills)/@(Match.RedTeam.PlayerScores[i].Deaths)/@(Match.RedTeam.PlayerScores[i].Assists)
+                                </h5>
+                                <div class="d-flex justify-content-center mx-3 mb-2">
+                                    <button class="btn btn-primary mx-1" @onclick="() => UpdateScoreAsync(index, TeamType.Red, ScoreType.Kill)">+ Kill</button>
+                                    <button class="btn btn-primary mx-1" @onclick="() => UpdateScoreAsync(index, TeamType.Red, ScoreType.Death)">+ Death</button>
+                                    <button class="btn btn-primary mx-1" @onclick="() => UpdateScoreAsync(index, TeamType.Red, ScoreType.Assist)">+ Assist</button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="blue-team p-2 my-3">
+                    <h5 class="text-center text-light mt-2">Blue Towers</h5>
+                </div>
+                @foreach (var tower in Towers.Where(t => t.CanBeDestroyed && !t.IsDestroyed && t.Team == TeamType.Blue))
+                {
+                    <button class="btn btn-dark btn-ranking mb-2 mx-2" @onclick="() => DestroyTower(tower.Name)">@tower.Name</button>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="row my-4">
+        <div class="col-12">
+            <div class="card p-3" style="background-color: #1a1a1a;">
+                <h5 class="text-center text-light">Announcements</h5>
+                <div class="d-flex justify-content-center mt-3">
+                    <div class="text-center mx-2">
+                        <button class="btn btn-success square-button btn-connection" @onclick="SendLostConnectionAnnouncement">
+                            <span class="oi oi-reload" style="font-size: 24px;"></span>
+                        </button>
+                        <small class="text-light d-block mt-1">Lost Connection</small>
+                    </div>
+                    <div class="text-center mx-2">
+                        <button class="btn btn-warning square-button btn-cheater" @onclick="SendCheaterAnnouncement">
+                            <span class="oi oi-eye" style="font-size: 24px;"></span>
+                        </button>
+                        <small class="text-light d-block mt-1">Cheater Detected</small>
+                    </div>
+                    <div class="text-center mx-2">
+                        <button class="btn btn-danger square-button btn-water" @onclick="SendWaterLeakAnnouncement">
+                            <span class="oi oi-droplet" style="font-size: 24px;"></span>
+                        </button>
+                        <small class="text-light d-block mt-1">Water Leak</small>
+                    </div>
+                </div>
+                <div class="text-center mt-5 mx-2">
+                    <label class="form-label text-light" for="customAnnouncementInput">Enter a custom announcement: </label>
+                    <div class="input-group mb-2" style="max-width:50%; margin: 0 auto;">
+                        <input id="customAnnouncementInput" class="form-control" @bind="customAnnouncement" maxlength="40" placeholder="Please enter ur message..." />
+                        <button class="btn btn-secondary" type="button" @onclick="SendCustomAnnouncement">
+                            <span class="oi oi-bullhorn" style="font-size: 24px;"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+@code {
+    [Parameter]
+    public MatchViewModel Match { get; set; }
+
+    [Parameter]
+    public EventCallback<MatchState> MatchChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<TeamType> OnTeamWinning { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnLogbookMessage { get; set; }
+
+    [Parameter]
+    public EventCallback<AnnouncementViewModel> OnAnnouncementSend { get; set; }
+
+    [Parameter]
+    public EventCallback<(int index, TeamType team, ScoreType type)> OnPlayerScoreUpdate { get; set; }
+
+    [Parameter]
+    public EventCallback<(double x, double y)> OnTowerDestroyed { get; set; }
+
+    private List<TowerViewModel> Towers { get; set; }
+    bool isLoading = true;
+
+    private int test = 1;
+
+    private string customAnnouncement { get; set; } = "";
+
+    protected override void OnInitialized()
+    {
+        Towers = MapService.GetTowers().Select(t => new TowerViewModel
+        {
+            Team = t.Team,
+            Name = t.Name,
+            X = t.X,
+            Y = t.Y,
+            Dependencies = t.Dependencies,
+            IsDestroyed = t.IsDestroyed,
+            CanBeDestroyed = t.CanBeDestroyed,
+            AnyDependency = t.AnyDependency,
+            IsLastTower = t.IsLastTower
+        }).ToList();
+
+        isLoading = false;
+    }
+
+    public async Task UpdateScoreAsync(int index, TeamType team, ScoreType type)
+    {
+        string message = "";
+        if (team == TeamType.Blue)
+        {
+            switch (type)
+            {
+                case ScoreType.Kill:
+                    Match.BlueTeam.PlayerScores[index].Kills++;
+                    message = $"{Match.BlueTeam.Players[index].PlayerName} scored a kill!";
+                    break;
+                case ScoreType.Death:
+                    Match.BlueTeam.PlayerScores[index].Deaths++;
+                    message = $"{Match.BlueTeam.Players[index].PlayerName} died!";
+                    break;
+                case ScoreType.Assist:
+                    Match.BlueTeam.PlayerScores[index].Assists++;
+                    message = $"{Match.BlueTeam.Players[index].PlayerName} assisted with a kill!";
+                    break;
+            }
+        }
+        else if (team == TeamType.Red)
+        {
+            switch (type)
+            {
+                case ScoreType.Kill:
+                    Match.RedTeam.PlayerScores[index].Kills++;
+                    message = $"{Match.RedTeam.Players[index].PlayerName} scored a kill!";
+                    break;
+                case ScoreType.Death:
+                    Match.RedTeam.PlayerScores[index].Deaths++;
+                    message = $"{Match.RedTeam.Players[index].PlayerName} died!";
+                    break;
+                case ScoreType.Assist:
+                    Match.RedTeam.PlayerScores[index].Assists++;
+                    message = $"{Match.RedTeam.Players[index].PlayerName} assisted with a kill!";
+                    break;
+            }
+        }
+
+        await OnLogbookMessage.InvokeAsync(message);
+        await OnPlayerScoreUpdate.InvokeAsync((index, team, type));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task DestroyTower(string towerName)
+    {
+        var tower = Towers.Find(t => t.Name == towerName);
+        if (tower != null && tower.CanBeDestroyed)
+        {
+            if (tower.IsLastTower)
+            {
+                UpdateGame(tower.Team);
+                return;
+            }
+
+            tower.IsDestroyed = true;
+            await OnLogbookMessage.InvokeAsync($"{tower.Name} has been destroyed!");
+            await OnTowerDestroyed.InvokeAsync((tower.X, tower.Y));
+            UpdateTowerStates();
+        }
+    }
+    private void UpdateTowerStates()
+    {
+        foreach (var tower in Towers)
+        {
+            if (tower.Dependencies != null && tower.Dependencies.Count > 0)
+            {
+                if (tower.AnyDependency)
+                {
+                    tower.CanBeDestroyed = tower.Dependencies.Any(dependencyName =>
+                    {
+                        var dependency = Towers.Find(t => t.Name == dependencyName);
+                        return dependency != null && dependency.IsDestroyed;
+                    });
+                }
+                else
+                {
+                    tower.CanBeDestroyed = tower.Dependencies.All(dependencyName =>
+                    {
+                        var dependency = Towers.Find(t => t.Name == dependencyName);
+                        return dependency != null && dependency.IsDestroyed;
+                    });
+                }
+            }
+            else
+            {
+                tower.CanBeDestroyed = true;
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private async void UpdateGame(TeamType team)
+    {
+        if (team == TeamType.Blue)
+        {
+            Match.RedTeam.MatchWins++;
+
+            if (Match.RedTeam.MatchWins >= Match.MatchType.RequiredWins)
+            {
+                // THE FULL GAME IS OVER - RED TEAM WIN
+                await OnTeamWinning.InvokeAsync(TeamType.Red);
+                return;
+            }
+
+            await MatchChanged.InvokeAsync(MatchState.Pause);
+        }
+        else
+        {
+            Match.BlueTeam.MatchWins++;
+
+            if (Match.BlueTeam.MatchWins >= Match.MatchType.RequiredWins)
+            {
+                // THE FULL GAME IS OVER - BLUE TEAM WIN
+                await OnTeamWinning.InvokeAsync(TeamType.Blue);
+                return;
+            }
+
+            await MatchChanged.InvokeAsync(MatchState.Pause);
+        }
+    }
+
+    private async Task SendCustomAnnouncement()
+    {
+        if (!string.IsNullOrWhiteSpace(customAnnouncement))
+        {
+            var announcement = new AnnouncementViewModel
+            {
+                Icon = "oi oi-bullhorn",
+                Message = customAnnouncement,
+                Color = "#6c757d"
+            };
+            await OnAnnouncementSend.InvokeAsync(announcement);
+            customAnnouncement = "";
+        }
+    }
+
+    private async Task SendLostConnectionAnnouncement()
+    {
+        var announcement = new AnnouncementViewModel
+        {
+            Icon = "oi oi-reload",
+            Message = "A player has lost connection to the game",
+            Color = "#534B62"
+        };
+        await OnAnnouncementSend.InvokeAsync(announcement);
+    }
+
+    private async Task SendCheaterAnnouncement()
+    {
+        var announcement = new AnnouncementViewModel
+        {
+            Icon = "oi oi-eye",
+            Color = "#cd5c5c",
+            Message = "A player has been detected cheating",
+        };
+        await OnAnnouncementSend.InvokeAsync(announcement);
+    }
+
+    private async Task SendWaterLeakAnnouncement()
+    {
+        var announcement = new AnnouncementViewModel
+        {
+            Icon = "oi oi-droplet",
+            Color = "#2E4057",
+            Message = "A player has dropped redbull on its keyboard",
+        };
+        await OnAnnouncementSend.InvokeAsync(announcement);
+    }
+}

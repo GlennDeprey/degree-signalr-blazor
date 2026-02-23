@@ -1,0 +1,198 @@
+﻿@page "/watch"
+<PageTitle>Live Game</PageTitle>
+@inject NavigationManager NavigationManager
+
+@if (isLoading)
+{
+    <Loading />
+}
+else
+{
+    switch (match.State)
+    {
+        case MatchState.None:
+            <WatchLanding />
+            break;
+        case MatchState.Configuring:
+            <WatchSetup Match="match" />
+            break;
+        case MatchState.ChampionSelect:
+            <WatchDraft Match="match" />
+            break;
+        case MatchState.GameStart:
+            <WatchGame Match="match" LogBook="logbook" />
+            break;
+        case MatchState.Pause:
+            <WatchPause Match="match" />
+            break;
+        case MatchState.GameEnd:
+            <WatchGameEnd Match="match" />
+            break;
+        default:
+            <div class="alert alert-danger">Unknown match state</div>
+            break;
+    }
+}
+
+@code {
+    private MatchViewModel match;
+    private HubConnection hubConnection;
+    private bool isLoading = true;
+    private List<string> logbook;
+
+    protected override async Task OnInitializedAsync()
+    {
+        logbook = new List<string>();
+        hubConnection = new HubConnectionBuilder()
+        .WithUrl(NavigationManager.ToAbsoluteUri("/matchHub"))
+        .Build();
+
+        hubConnection.On<MatchViewModel>(HubContants.ReceiveMatchInfo, async (currentMatch) =>
+        {
+            match = currentMatch;
+            logbook.Clear();
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<MatchViewModel>(HubContants.ReceiveCancelMatch, async (currentMatch) =>
+        {
+            match = currentMatch;
+            logbook.Clear();
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<MatchViewModel>(HubContants.ReceiveGameResult, async (gameresults) =>
+        {
+            match = gameresults;
+            logbook.Clear();
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<MatchViewModel>(HubContants.ReceiveNextMatchUpdate, async (newMatch) =>
+        {
+            match = newMatch;
+            logbook.Clear();
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<MatchState>(HubContants.ReceiveMatchStateUpdate, async (currentState) =>
+        {
+            match.State = currentState;
+            await InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<MatchTypeViewModel>(HubContants.ReceiveMatchTypeUpdate, async (matchType) =>
+        {
+            match.MatchType = matchType;
+            await InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<TeamMatchViewModel, TeamType>(HubContants.ReceiveTeamUpdate, async (team, type) =>
+        {
+            if(type == TeamType.Blue)
+            {
+                match.BlueTeam = team;
+            }
+
+            if (type == TeamType.Red)
+            {
+                match.RedTeam = team;
+            }
+
+            await InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<CrossViewModel>(HubContants.ReceiveTowerDestroyed, async (cross) =>
+        {
+            match.TowersDestroyed.Add(cross);
+            await InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<int, TeamType, ScoreType>(HubContants.ReceivePlayerScoreUpdate, async (index, team, type) =>
+        {
+            if (team == TeamType.Blue)
+            {
+                switch (type)
+                {
+                    case ScoreType.Kill:
+                        match.BlueTeam.PlayerScores[index].Kills++;
+                        break;
+                    case ScoreType.Death:
+                        match.BlueTeam.PlayerScores[index].Deaths++;
+                        break;
+                    case ScoreType.Assist:
+                        match.BlueTeam.PlayerScores[index].Assists++;
+                        break;
+                }
+            }
+            else if (team == TeamType.Red)
+            {
+                switch (type)
+                {
+                    case ScoreType.Kill:
+                        match.RedTeam.PlayerScores[index].Kills++;
+                        break;
+                    case ScoreType.Death:
+                        match.RedTeam.PlayerScores[index].Deaths++;
+                        break;
+                    case ScoreType.Assist:
+                        match.RedTeam.PlayerScores[index].Assists++;
+                        break;
+                }
+            }
+
+            await InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<string>(HubContants.ReceiveLogbookMessage, async (message) =>
+        {
+            logbook.Add(message);
+            await InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<SendChampion, int, TeamType>(HubContants.ReceiveBanUpdate, async (sendChampion, index, team) =>
+        {
+            var champion = new ChampionViewModel
+            {
+                Id = sendChampion.Id,
+                Name = sendChampion.Name,
+            };
+
+            if (team == TeamType.Blue)
+            {
+                match.BlueTeam.Bans[index] = champion;
+            }
+            else
+            {
+                match.RedTeam.Bans[index] = champion;
+            }
+            await InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<SendChampion, int, TeamType>(HubContants.ReceivePickUpdate, async (sendChampion, index, team) =>
+        {
+            var champion = new ChampionViewModel
+            {
+                Id = sendChampion.Id,
+                Name = sendChampion.Name,
+            };
+
+            if (team == TeamType.Blue)
+            {
+                match.BlueTeam.Champions[index] = champion;
+            }
+            else
+            {
+                match.RedTeam.Champions[index] = champion;
+            }
+            await InvokeAsync(StateHasChanged);
+        });
+
+        await hubConnection.StartAsync();
+
+    }
+}

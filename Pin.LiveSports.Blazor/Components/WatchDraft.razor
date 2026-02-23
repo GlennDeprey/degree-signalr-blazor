@@ -1,0 +1,102 @@
+﻿<div class="container-xl">
+    <div class="row game-container mt-4">
+        <div class="col-12 champions d-flex justify-content-center align-items-center flex-wrap">
+            <div class="mx-3">
+                <div class="d-flex justify-content-center">
+                    <img src="images/teams/@Match.BlueTeam.ImageUrl" alt="@Match.BlueTeam.Name" class="watch-team-logo img-fluid mb-2" />
+                </div>
+                <div class="team-info">
+                    <h5 class="text-light text-center">@Match.BlueTeam.Name</h5>
+                    <div class="watch-gap d-flex justify-content-center mb-3">
+                        @for (int i = 0; i < Match.MatchType.RequiredWins; i++)
+                        {
+                            <div class="square-score">
+                                @if (Match.BlueTeam.MatchWins > i)
+                                {
+                                    <div class="square-win"></div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                <h5 class="text-light text-center">Bans</h5>
+                <div class="watch-gap d-flex justify-content-center mb-2">
+                    @for (int i = 0; i < 5; i++)
+                    {
+                        <div class="square-bans">
+                            @if (Match.BlueTeam.Bans[i] != null)
+                            {
+                                <img src="@Match.BlueTeam.Bans[i].SmallImageUrl" alt="@Match.BlueTeam.Bans[i].Name" class="img-fluid" />
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+            @for (int i = 0; i < 5; i++)
+            {
+                <div class="watch-champion-rectangle position-relative">
+                    @if (Match.BlueTeam.Champions[i] != null)
+                    {
+                        <img src="@Match.BlueTeam.Champions[i].ImageUrl" alt="@Match.BlueTeam.Champions[i].Name" class="img-fluid" style="height:280px; width:154px;" />
+                    }
+                    <div class="player-info-box position-absolute w-100" style="bottom: 0; height: 30px; background-color: rgba(0, 0, 0, 0.5); color: white; display: flex; justify-content: space-between; align-items: center; padding: 0 5px;">
+                        <img src="images/roles/@Match.BlueTeam.Players[i].Role.ImageUrl" style="height:20px;" width="20px;" />
+                        <span>@Match.BlueTeam.Players[i].PlayerName</span>
+                    </div>
+                </div>
+            }
+        </div>
+        <hr class="border-dark-subtle my-5 mx-3" />
+        <div class="col-12 champions d-flex justify-content-center align-items-center flex-wrap">
+            <div class="mx-3">
+                <div class="d-flex justify-content-center">
+                    <img src="images/teams/@Match.RedTeam.ImageUrl" alt="@Match.RedTeam.Name" class="watch-team-logo img-fluid mb-2" />
+                </div>
+                <div class="team-info">
+                    <h5 class="text-light text-center">@Match.RedTeam.Name</h5>
+                    <div class="watch-gap d-flex justify-content-center mb-3">
+                        @for (int i = 0; i < Match.MatchType.RequiredWins; i++)
+                        {
+                            <div class="square-score">
+                                @if (Match.RedTeam.MatchWins > i)
+                                {
+                                    <div class="square-win"></div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                <h5 class="text-light text-center">Bans</h5>
+                <div class="watch-gap d-flex justify-content-center mb-2">
+                    @for (int i = 0; i < 5; i++)
+                    {
+                        <div class="square-bans">
+                            @if (Match.RedTeam.Bans[i] != null)
+                            {
+                                <img src="@Match.RedTeam.Bans[i].SmallImageUrl" alt="@Match.RedTeam.Bans[i].Name" class="img-fluid" />
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+            @for (int i = 0; i < 5; i++)
+            {
+                <div class="watch-champion-rectangle position-relative">
+                    @if (Match.RedTeam.Champions[i] != null)
+                    {
+                        <img src="@Match.RedTeam.Champions[i].ImageUrl" alt="@Match.RedTeam.Champions[i].Name" class="img-fluid" style="height:280px; width:154px;" />
+                    }
+                    <div class="player-info-box position-absolute w-100" style="bottom: 0; height: 30px; background-color: rgba(0, 0, 0, 0.5); color: white; display: flex; justify-content: space-between; align-items: center; padding: 0 5px;">
+                        <img src="images/roles/@Match.RedTeam.Players[i].Role.ImageUrl" style="height:20px;" width="20px;" />
+                        <span>@Match.RedTeam.Players[i].PlayerName</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public MatchViewModel Match { get; set; }
+}

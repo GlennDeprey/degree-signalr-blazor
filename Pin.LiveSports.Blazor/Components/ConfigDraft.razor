@@ -1,0 +1,326 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+
+<div class="container-xl mt-5">
+    <div class="d-flex justify-content-between mb-3">
+        <!-- Left column for chosen champions -->
+        <div class="card card-dark p-2" style="width:20%;">
+            <div class="d-flex flex-column gap-1">
+                <div class="m-3 d-flex align-items-center">
+                    <img class="img-fluid" src="images/teams/@Match.BlueTeam.ImageUrl" alt="@Match.BlueTeam.Name" style="height: 50px; width: 50px;" />
+                    <div class="text-light ms-2">
+                        <div style="font-weight:bold;">@Match.BlueTeam.Name</div>
+                        <div class="watch-gap d-flex justify-content-center mb-3">
+                            @for (int i = 0; i < Match.MatchType.RequiredWins; i++)
+                            {
+                                <div class="square-score">
+                                    @if (Match.BlueTeam.MatchWins > i)
+                                    {
+                                        <div class="square-win"></div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="mx-3">
+                    @for (int i = 0; i < Match.BlueTeam.Players.Count; i++)
+                    {
+                        <div class="text-light" style="font-weight:bold;">@Match.BlueTeam.Players[i].PlayerName</div>
+                        <div class="d-flex align-items-center mb-2">
+                            <img class="img-fluid role-logo" src="images/roles/@Match.BlueTeam.Players[i].Role.ImageUrl" />
+                            <div class="square-champion mx-2">
+                                @if (Match.BlueTeam.Champions[i] != null)
+                                {
+                                    <img src="@Match.BlueTeam.Champions[i].SmallImageUrl" alt="@Match.BlueTeam.Champions[i].Name" class="img-fluid" />
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Center column for all champions -->
+        <div class="card card-dark p-2" style="width:50%;">
+            <div class="d-flex flex-wrap gap-1 fixed-size">
+                @foreach (var champion in Champions.List)
+                {
+                    if (!champion.IsSelected)
+                    {
+                        <div class="card" style="background-color: #1c1c1c;" @onclick="() => SelectChampion(champion)">
+                            <div class="card-img"><img src="@champion.SmallImageUrl" alt="@champion.Name" class="img-fluid" style="height:60px; width:60px" /></div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Right column for chosen champions -->
+        <div class="card card-dark p-2" style="width:20%;">
+            <div class="d-flex flex-column gap-1">
+                <div class="m-3 d-flex align-items-center justify-content-end">
+                    <div class="text-light mx-2">
+                        <div style="font-weight:bold;">@Match.RedTeam.Name</div>
+                        <div class="watch-gap d-flex justify-content-center mb-3">
+                            @for (int i = 0; i < Match.MatchType.RequiredWins; i++)
+                            {
+                                <div class="square-score">
+                                    @if (Match.RedTeam.MatchWins > i)
+                                    {
+                                        <div class="square-win"></div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <img class="img-fluid" src="images/teams/@Match.RedTeam.ImageUrl" alt="@Match.RedTeam.Name" style="height: 50px; width: 50px;" />
+                </div>
+
+                <div class="mx-3 d-flex flex-column align-items-end">
+                    @for (int i = 0; i < Match.RedTeam.Players.Count; i++)
+                    {
+                        <div class="text-light mx-2" style="font-weight:bold;">@Match.RedTeam.Players[i].PlayerName</div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="square-champion">
+                                @if (Match.RedTeam.Champions[i] != null)
+                                {
+                                    <img src="@Match.RedTeam.Champions[i].SmallImageUrl" alt="@Match.RedTeam.Champions[i].Name" class="img-fluid" />
+                                }
+                            </div>
+                            <img class="img-fluid role-logo mx-2" src="images/roles/@Match.RedTeam.Players[i].Role.ImageUrl" />
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <!-- Left column for bans -->
+        <div class="card card-dark p-2" style="width:20%;">
+            <div class="d-flex flex-row flex-wrap justify-content-center gap-1">
+                <!-- Bans will be displayed here -->
+                @for (int i = 0; i < Match.BlueTeam.Bans.Length; i++)
+                {
+                    <div class="square-bans">
+                        @if (Match.BlueTeam.Bans[i] != null)
+                        {
+                            <img src="@Match.BlueTeam.Bans[i].SmallImageUrl" alt="@Match.BlueTeam.Bans[i].Name" class="img-fluid" />
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card card-dark p-2" style="width:50%;">
+            <div class="d-flex flex-wrap gap-1">
+                <button class="btn btn-dark btn-ranking w-100" @onclick="OnLockInAsync">Lock In</button>
+            </div>
+        </div>
+
+        <!-- Right column for bans -->
+        <div class="card card-dark p-2" style="width:20%;">
+            <div class="d-flex flex-row flex-wrap justify-content-center gap-1">
+                <!-- Bans will be displayed here -->
+                @for (int i = 0; i < Match.RedTeam.Bans.Length; i++)
+                {
+                    <div class="square-bans">
+                        @if (Match.RedTeam.Bans[i] != null)
+                        {
+                            <img src="@Match.RedTeam.Bans[i].SmallImageUrl" alt="@Match.RedTeam.Bans[i].Name" class="img-fluid" />
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+@code {
+    [Parameter]
+    public MatchViewModel Match { get; set; }
+
+    [Parameter]
+    public ChampionListViewModel Champions { get; set; }
+
+    [Parameter]
+    public EventCallback<(SendChampion champion, int index, TeamType team)> BanChampionCallback { get; set; }
+
+    [Parameter]
+    public EventCallback<(SendChampion champion, int index, TeamType team)> PickChampionCallback { get; set; }
+
+    [Parameter]
+    public EventCallback<MatchState> MatchChanged { get; set; }
+
+    private int banCount = 0;
+    private int pickCount = 0;
+    private int phase = 0;
+
+    private async Task SelectChampion(ChampionViewModel champion)
+    {
+        if (phase == 0 || phase == 2)
+        {
+            await BanChampion(champion);
+        }
+        else
+        {
+            await PickChampion(champion);
+        }
+    }
+
+    private async Task BanChampion(ChampionViewModel champion)
+    {
+        if (phase == 0 && banCount < 6)
+        {
+            if (banCount % 2 == 0)
+            {
+                for (int i = 0; i < Match.BlueTeam.Bans.Length; i++)
+                {
+                    if (Match.BlueTeam.Bans[i] == null)
+                    {
+                        Match.BlueTeam.Bans[i] = champion;
+                        await BanChampionCallback.InvokeAsync((new SendChampion { Id = champion.Id, Name = champion.Name }, i, TeamType.Blue));
+                        champion.IsSelected = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < Match.RedTeam.Bans.Length; i++)
+                {
+                    if (Match.RedTeam.Bans[i] == null)
+                    {
+                        Match.RedTeam.Bans[i] = champion;
+                        await BanChampionCallback.InvokeAsync((new SendChampion { Id = champion.Id, Name = champion.Name }, i, TeamType.Red));
+                        champion.IsSelected = true;
+                        break;
+                    }
+                }
+            }
+
+            banCount++;
+            if (banCount == 6)
+            {
+                phase = 1; // Move to first picking phase
+            }
+        }
+        else if (phase == 2 && banCount < 10)
+        {
+            if (banCount % 2 == 0)
+            {
+                for (int i = 0; i < Match.BlueTeam.Bans.Length; i++)
+                {
+                    if (Match.BlueTeam.Bans[i] == null)
+                    {
+                        Match.BlueTeam.Bans[i] = champion;
+                        await BanChampionCallback.InvokeAsync((new SendChampion { Id = champion.Id, Name = champion.Name }, i, TeamType.Blue));
+                        champion.IsSelected = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < Match.RedTeam.Bans.Length; i++)
+                {
+                    if (Match.RedTeam.Bans[i] == null)
+                    {
+                        Match.RedTeam.Bans[i] = champion;
+                        await BanChampionCallback.InvokeAsync((new SendChampion { Id = champion.Id, Name = champion.Name }, i, TeamType.Red));
+                        champion.IsSelected = true;
+                        break;
+                    }
+                }
+            }
+
+            banCount++;
+            if (banCount == 10)
+            {
+                phase = 3; // Move to second picking phase
+            }
+        }
+    }
+
+    private async Task PickChampion(ChampionViewModel champion)
+    {
+        if (phase == 1 && pickCount < 6)
+        {
+            if (pickCount == 0 || pickCount == 3 || pickCount == 4)
+            {
+                for (int i = 0; i < Match.BlueTeam.Champions.Length; i++)
+                {
+                    if (Match.BlueTeam.Champions[i] == null)
+                    {
+                        Match.BlueTeam.Champions[i] = champion;
+                        await PickChampionCallback.InvokeAsync((new SendChampion { Id = champion.Id, Name = champion.Name }, i, TeamType.Blue));
+                        champion.IsSelected = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < Match.RedTeam.Champions.Length; i++)
+                {
+                    if (Match.RedTeam.Champions[i] == null)
+                    {
+                        Match.RedTeam.Champions[i] = champion;
+                        await PickChampionCallback.InvokeAsync((new SendChampion { Id = champion.Id, Name = champion.Name }, i, TeamType.Red));
+                        champion.IsSelected = true;
+                        break;
+                    }
+                }
+            }
+
+            pickCount++;
+            if (pickCount == 6)
+            {
+                phase = 2; // Move to second banning phase
+            }
+        }
+        else if (phase == 3 && pickCount < 10)
+        {
+            if (pickCount == 6 || pickCount == 9)
+            {
+                for (int i = 0; i < Match.BlueTeam.Champions.Length; i++)
+                {
+                    if (Match.BlueTeam.Champions[i] == null)
+                    {
+                        Match.BlueTeam.Champions[i] = champion;
+                        await PickChampionCallback.InvokeAsync((new SendChampion { Id = champion.Id, Name = champion.Name }, i, TeamType.Blue));
+                        champion.IsSelected = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < Match.RedTeam.Champions.Length; i++)
+                {
+                    if (Match.RedTeam.Champions[i] == null)
+                    {
+                        Match.RedTeam.Champions[i] = champion;
+                        await PickChampionCallback.InvokeAsync((new SendChampion { Id = champion.Id, Name = champion.Name }, i, TeamType.Red));
+                        champion.IsSelected = true;
+                        break;
+                    }
+                }
+            }
+
+            pickCount++;
+        }
+    }
+
+    private async Task OnLockInAsync()
+    {
+        if(Match.BlueTeam.Champions.Any(c => c == null) || Match.BlueTeam.Champions.Any(c => c == null))
+        {
+            return;
+        }
+
+        await MatchChanged.InvokeAsync(MatchState.GameStart);
+    }
+}

@@ -1,0 +1,11 @@
+﻿<div class="d-flex justify-content-center align-items-center my-5">
+    <div class="text-center">
+        <div class="spinner-border spinner-border-lg text-lol mb-2"></div>
+        <div class="text-lol">@LoadingText</div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string LoadingText { get; set; } = "Loading...";
+}

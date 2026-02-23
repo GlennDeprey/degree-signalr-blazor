@@ -1,0 +1,19 @@
+﻿<div class="container-xl">
+    <div class="card p-2" style="background-color: #0f0f0f;">
+        <img class="img-fluid mx-auto" src="images/logo-lolesports.png" alt="Logo Header" />
+        <button class="btn btn-dark btn-ranking my-3" @onclick="StartGame">Start the next champion select</button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<MatchState> MatchChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnNextMatch { get; set; }
+
+    public async Task StartGame()
+    {
+        await OnNextMatch.InvokeAsync();
+    }
+}

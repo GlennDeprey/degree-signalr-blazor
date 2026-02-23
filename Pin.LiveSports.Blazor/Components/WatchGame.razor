@@ -1,0 +1,159 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+
+<div class="container-xl mt-5">
+    <div class="d-flex justify-content-between mb-3">
+        <div class="card card-dark p-2" style="width:20%;">
+            <div class="m-3 d-flex align-items-center">
+                <img class="img-fluid" src="images/teams/@Match.BlueTeam.ImageUrl" alt="@Match.BlueTeam.Name" style="height: 50px; width: 50px;" />
+                <div class="text-light ms-2">
+                    <div style="font-weight:bold;">@Match.BlueTeam.Name</div>
+                    <div class="watch-gap d-flex justify-content-center mb-3">
+                        @for (int i = 0; i < Match.MatchType.RequiredWins; i++)
+                        {
+                            <div class="square-score">
+                                @if (Match.BlueTeam.MatchWins > i)
+                                {
+                                    <div class="square-win"></div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="mx-3">
+                @for (int i = 0; i < Match.BlueTeam.Players.Count; i++)
+                {
+                    <div class="text-light" style="font-weight:bold;">@Match.BlueTeam.Players[i].PlayerName</div>
+                    <div class="d-flex align-items-center mb-2">
+                        <img class="img-fluid role-logo" src="images/roles/@Match.BlueTeam.Players[i].Role.ImageUrl" />
+                        <div class="square-champion mx-2">
+                            @if (Match.BlueTeam.Champions[i] != null)
+                            {
+                                <img src="@Match.BlueTeam.Champions[i].SmallImageUrl" alt="@Match.BlueTeam.Champions[i].Name" class="img-fluid" />
+                            }
+                        </div>
+                        <h5 class="text-white text-center">
+                            @(Match.BlueTeam.PlayerScores[i].Kills)/@(Match.BlueTeam.PlayerScores[i].Deaths)/@(Match.BlueTeam.PlayerScores[i].Assists)
+                        </h5>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="card card-dark p-2" style="width:50%;">
+            <Snackbar @ref="SnackbarRef" />
+            <GameMap Match="Match" />
+        </div>
+        <div class="card card-dark p-2" style="width:20%;">
+            <div class="m-3 d-flex align-items-center">
+                <img class="img-fluid" src="images/teams/@Match.RedTeam.ImageUrl" alt="@Match.RedTeam.Name" style="height: 50px; width: 50px;" />
+                <div class="text-light mx-2">
+                    <div style="font-weight:bold;">@Match.RedTeam.Name</div>
+                    <div class="watch-gap d-flex justify-content-center mb-3">
+                        @for (int i = 0; i < Match.MatchType.RequiredWins; i++)
+                        {
+                            <div class="square-score">
+                                @if (Match.RedTeam.MatchWins > i)
+                                {
+                                    <div class="square-win"></div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="mx-3 d-flex flex-column">
+                @for (int i = 0; i < Match.RedTeam.Players.Count; i++)
+                {
+                    <div class="text-light mx-2" style="font-weight:bold;">@Match.RedTeam.Players[i].PlayerName</div>
+                    <div class="d-flex align-items-center mb-2">
+                        <img class="img-fluid role-logo" src="images/roles/@Match.RedTeam.Players[i].Role.ImageUrl" />
+                        <div class="square-champion mx-2">
+                            @if (Match.RedTeam.Champions[i] != null)
+                            {
+                                <img src="@Match.RedTeam.Champions[i].SmallImageUrl" alt="@Match.RedTeam.Champions[i].Name" class="img-fluid" />
+                            }
+                        </div>
+                        <h5 class="text-white text-center">
+                            @(Match.RedTeam.PlayerScores[i].Kills)/@(Match.RedTeam.PlayerScores[i].Deaths)/@(Match.RedTeam.PlayerScores[i].Assists)
+                        </h5>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    @if (LogBook.Any())
+    {
+        <div class="d-flex justify-content-center">
+            <div class="card card-dark p-2 mt-3" style="width:50%;">
+                <h5 class="text-light">Logbook</h5>
+                <div class="logbook p-3" style="background-color: #1a1a1a" @ref="logbookContainer">
+                    @foreach (var logEntry in LogBook)
+                    {
+                        <li>@logEntry</li>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public MatchViewModel Match { get; set; }
+
+    [Parameter]
+    public List<string> LogBook { get; set; }
+
+    private HubConnection hubConnection;
+
+    private ElementReference logbookContainer;
+
+    private Snackbar SnackbarRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+        .WithUrl(NavigationManager.ToAbsoluteUri("/matchHub"))
+        .Build();
+
+        hubConnection.On<AnnouncementViewModel>(HubContants.ReceiveAnnouncement, async (announcement) =>
+        {
+            await ShowAnnouncement(announcement);
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (LogBook.Any())
+        {
+            await JSRuntime.InvokeVoidAsync("scrollToBottom", logbookContainer);
+        }
+    }
+
+    public async Task ShowAnnouncement(AnnouncementViewModel announcement)
+    {
+        if (SnackbarRef != null)
+        {
+            if (string.IsNullOrWhiteSpace(announcement.Icon))
+            {
+                announcement.Icon = "";
+            }
+
+            if (string.IsNullOrWhiteSpace(announcement.Color))
+            {
+                announcement.Color = "#333";
+            }
+
+            if (string.IsNullOrWhiteSpace(announcement.Message))
+            {
+                announcement.Message = "No message";
+            }
+
+            await SnackbarRef.ShowAsync(announcement.Message, announcement.Icon, announcement.Color);
+        }
+    }
+}

@@ -1,0 +1,13 @@
+﻿<div class="map-container">
+    <img src="images/game/map.jpg" alt="Map" class="map-image img-fluid" />
+    @foreach (var cross in Match.TowersDestroyed)
+    {
+        <div class="cross" style="top:@cross.Y%; left:@cross.X%;"></div>
+    }
+</div>
+
+@code {
+
+    [Parameter]
+    public MatchViewModel Match { get; set; }
+}
